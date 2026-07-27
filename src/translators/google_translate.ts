@@ -1,16 +1,54 @@
-export default async function (text: string, source: string, target: string) {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&dt=bd&dj=1&q=${text.replace("%/g", "%25")}`
-    
-    const res = await fetch(url)
-    const data = await res.json()
+export type GoogleTranslateError = {
+    code: string;
+    message: string;
+    status?: number;
+};
 
-    let final = ""
+type GoogleTranslateResponse = {
+    sentences?: Array<{
+        trans?: string;
+    }>;
+};
 
-    final = unescape(data.sentences[0].trans)
+export default async function translateGoogle(
+    text: string,
+    source: string,
+    target: string,
+): Promise<string> {
+    if (text.trim().length === 0) return "";
 
-    for (let i = 1; i < data.sentences.length; i++) {
-        final += " " + unescape(data.sentences[i].trans)
+    const parameters = new URLSearchParams({
+        client: "gtx",
+        sl: source,
+        tl: target,
+        dt: "t",
+        dj: "1",
+        q: text,
+    });
+    const response = await fetch(
+        `https://translate.googleapis.com/translate_a/single?${parameters.toString()}`,
+    );
+
+    if (!response.ok) {
+        throw <GoogleTranslateError>{
+            code: "google_http_error",
+            message: `Google Translate returned HTTP ${response.status}.`,
+            status: response.status,
+        };
     }
 
-    return final
+    const data = await response.json() as GoogleTranslateResponse;
+    const translation = data.sentences
+        ?.map((sentence) => sentence.trans ?? "")
+        .join("")
+        .trim();
+
+    if (!translation) {
+        throw <GoogleTranslateError>{
+            code: "google_invalid_response",
+            message: "Google Translate returned an invalid or empty response.",
+        };
+    }
+
+    return translation;
 }

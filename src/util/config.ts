@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { invoke } from "@tauri-apps/api/core";
 import { langSource, langTo } from "./constants"
+import { TranslationEngine } from "../translators/types";
 
 import {
     info,
@@ -22,10 +23,15 @@ export type MessageHistoryItem = {
 export type Config = {
     source_language: string,
     target_language: string,
+    translation_engine: TranslationEngine,
     light_mode: boolean,
     mode: number,
     language_settings: {
         japanese_omit_questionmark: boolean,
+    },
+    deepl_settings: {
+        api_plan: "free" | "pro",
+        send_source_on_error: boolean,
     },
     enable_overlay: boolean,
     vrchat_settings: {
@@ -57,11 +63,16 @@ export type Config = {
 export const DEFAULT_CONFIG: Config = {
     source_language: "en-US",
     target_language: "ja",
+    translation_engine: "deepl",
     mode: 0,
     light_mode: false,
     enable_overlay: true,
     language_settings: {
         japanese_omit_questionmark: true
+    },
+    deepl_settings: {
+        api_plan: "free",
+        send_source_on_error: false,
     },
     vrchat_settings: {
         enable_chatbox: true,
@@ -121,6 +132,11 @@ export function validate_config(config: Config): Config {
         cfg.target_language = langTo[cfg.target_language < 6 ? 0 : cfg.target_language-5].code
 
         debug(`[CONFIG] Updated target language to ${cfg.target_language}`)
+    }
+
+    if (cfg.translation_engine !== "deepl" && cfg.translation_engine !== "google") {
+        cfg.translation_engine = DEFAULT_CONFIG.translation_engine
+        debug(`[CONFIG] Reset invalid translation engine to ${cfg.translation_engine}`)
     }
 
     return cfg

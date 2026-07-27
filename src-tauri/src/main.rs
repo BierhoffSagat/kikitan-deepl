@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod data_out;
+mod deepl;
 mod filesys;
 mod process_manager;
 mod screenaudio;
@@ -10,7 +11,6 @@ mod vrc_commands;
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -34,7 +34,12 @@ fn main() {
             data_out::send_recognized_microphone,
             data_out::send_translated_microphone,
             data_out::send_recognized_desktop,
-            data_out::send_translated_desktop
+            data_out::send_translated_desktop,
+            deepl::save_deepl_api_key,
+            deepl::delete_deepl_api_key,
+            deepl::deepl_api_key_status,
+            deepl::check_deepl_connection,
+            deepl::translate_deepl
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

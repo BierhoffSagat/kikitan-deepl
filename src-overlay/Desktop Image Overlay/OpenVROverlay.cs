@@ -42,6 +42,7 @@ public class OpenVROverlay : Application
         }
 
         var leftEye = system.GetEyeToHeadTransform(EVREye.Eye_Left);
+        var leftX = leftEye.m3;
 
         HmdMatrix34_t overlayTransform = new HmdMatrix34_t
         {

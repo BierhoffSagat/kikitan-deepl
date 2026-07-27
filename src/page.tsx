@@ -10,7 +10,7 @@ import {
   MenuItem,
   Button,
   IconButton,
-  CircularProgress
+  Chip,
 } from '@mui/material';
 
 import {
@@ -33,20 +33,14 @@ import { getVersion } from '@tauri-apps/api/app';
 
 import Changelogs from './pages/Changelogs';
 
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
-
 import { localization } from './util/localization';
 
-import translateGT from './translators/google_translate';
 import QuickstartMenu from './components/Quickstart';
 function App() {
   const [quickstartVisible, setQuickstartVisible] = React.useState(true)
   const [changelogsVisible, setChangelogsVisible] = React.useState(false)
   const [settingsVisible, setSettingsVisible] = React.useState(false)
-  const [updateVisible, setUpdateVisible] = React.useState(false)
   const [donateVisible, setDonateVisible] = React.useState(false)
-  const [googleServersErrorVisible, setGoogleServersErrorVisible] = React.useState(false)
   const [geminiErrorShown, setGeminiErrorShown] = React.useState<boolean>(false);
 
   const [config, setConfig] = React.useState(DEFAULT_CONFIG)
@@ -75,20 +69,6 @@ function App() {
 
     setLang(language == null ? "en" : language)
     setConfig(cfg)
-
-    check().then((update) => {
-      setUpdateVisible(update != null)
-
-      update?.downloadAndInstall().then(() => {
-        relaunch()
-      });
-    });
-
-    translateGT("Hello, how are you?", "en-US", "tr-TR").then((out) => { console.log("Can access to Google servers: " + out) }).catch(err => {
-      console.log(err)
-
-      setGoogleServersErrorVisible(true)
-    })
 
     invoke("start_vrc_listener")
 
@@ -130,15 +110,6 @@ function App() {
       <div className={`relative transition-all duration-500 ${!loaded ? "opacity-0 pointer-events-none" : "opacity-100"} ${!config.light_mode ? "bg-slate-950 text-white" : ""}`}>
         <div className={`transition-all z-20 w-full h-screen flex backdrop-blur-sm bg-transparent justify-center items-center absolute` + (quickstartVisible && lang != null ? " opacity-100" : " opacity-0 pointer-events-none")}>
           <QuickstartMenu config={config} setLang={setLang} lang={lang} setConfig={setConfig}></QuickstartMenu>
-        </div>
-
-        <div className={'transition-all z-30 w-full h-screen flex backdrop-blur-sm bg-transparent justify-center items-center absolute' + (updateVisible ? " opacity-100" : " opacity-0 pointer-events-none")}>
-          <div className={`flex flex-col justify-center w-10/12 h-5/6 outline outline-1 ${config.light_mode ? "outline-white" : "outline-slate-950"} rounded ${config.light_mode ? "bg-white" : "bg-slate-950"}`}>
-            <div className='flex flex-row justify-center'>
-              <CircularProgress></CircularProgress>
-              <p className='ml-4 text-4xl'>{localization.updating[lang]}</p>
-            </div>
-          </div>
         </div>
 
         <div className={'transition-all z-30 w-full h-screen flex backdrop-blur-sm bg-transparent justify-center items-center absolute' + (donateVisible && !quickstartVisible ? " opacity-100" : " opacity-0 pointer-events-none")}>
@@ -187,19 +158,8 @@ function App() {
           </div>
         </div>
 
-        <div className={'transition-all z-10 w-full h-screen flex backdrop-blur-sm bg-transparent justify-center items-center absolute' + (googleServersErrorVisible ? " opacity-100" : " opacity-0 pointer-events-none")}>
-          <div className={`flex flex-col justify-center w-10/12 h-3/6 outline outline-1 ${config.light_mode ? "outline-white" : "outline-slate-950"} outline-gray-200 rounded ${config.light_mode ? "bg-white" : "bg-slate-950"}`}>
-            <div className='flex flex-row justify-center'>
-              <p className='ml-4 text-md text-center'>{localization.unable_to_access_google_servers[lang]}</p>
-            </div>
-            <div className='flex flex-row justify-center mt-4'>
-              <Button variant="contained" className='w-32' onClick={() => { setGoogleServersErrorVisible(false) }}>{localization.close_menu[lang]}</Button>
-            </div>
-          </div>
-        </div>
-
         <div className={'transition-all z-30 w-full h-screen flex backdrop-blur-sm bg-transparent justify-center items-center absolute' + (settingsVisible ? " opacity-100" : " opacity-0 pointer-events-none")}>
-          <div className={`flex flex-col justify-between  w-10/12 h-5/6 outline outline-1 ${config.light_mode ? "outline-slate-400" : "outline-slate-950"} rounded bg-white`}>
+          <div className={`flex flex-col justify-between w-10/12 h-5/6 overflow-hidden outline outline-1 ${config.light_mode ? "outline-slate-400 bg-white" : "outline-slate-800 bg-slate-950"} rounded`}>
             <SettingsPage lang={lang} config={config} setConfig={setConfig} closeCallback={() => setSettingsVisible(false)} />
           </div>
         </div>
@@ -215,7 +175,7 @@ function App() {
           <AppBar position="static">
             <Toolbar>
               <Typography className="flex" variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                Kikitan Translator
+                Kikitan Translator DeepL
                 <p className="text-sm italic ml-2 mt-2">
                   <a href='' onClick={(e) => {
                     e.preventDefault()
@@ -223,6 +183,17 @@ function App() {
                     setChangelogsVisible(true)
                   }}>v{appVersion}</a>
                 </p>
+                <Chip
+                  className="ml-3 mt-1"
+                  size="small"
+                  label={config.translation_engine === "deepl" ? "DeepL" : "Google"}
+                  sx={{
+                    color: "white",
+                    borderColor: "rgba(255,255,255,0.72)",
+                    backgroundColor: "rgba(28,25,23,0.18)",
+                  }}
+                  variant="outlined"
+                />
               </Typography>
               <div className='flex'>
                 <Select sx={{

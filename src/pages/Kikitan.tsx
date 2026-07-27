@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as React from "react";
 
 import {
@@ -8,7 +7,6 @@ import {
     TextField,
     IconButton,
     Tooltip,
-    Switch,
 } from "@mui/material";
 
 import { info, error, warn } from "@tauri-apps/plugin-log";
@@ -22,7 +20,6 @@ import {
     PlayArrow as PlayArrowIcon,
     Pause as PauseIcon,
     Keyboard,
-    Circle,
     History as HistoryIcon,
     Close as CloseIcon,
 } from "@mui/icons-material";
@@ -41,6 +38,7 @@ import {
 import { Config, MessageHistoryItem } from "../util/config";
 import { Recognizer } from "../recognizers/recognizer";
 import { WebSpeech } from "../recognizers/WebSpeech";
+import { TranslationError } from "../translators/types";
 
 import { localization } from "../util/localization";
 // import { Gemini, GeminiState } from "../recognizers/Gemini";
@@ -68,7 +66,6 @@ export default function Kikitan({
     setConfig,
     lang,
     settingsVisible,
-    setGeminiErrorShown
 }: KikitanProps) {
     const [detecting, setDetecting] = React.useState(false);
     const [srStatus, setSRStatus] = React.useState(true);
@@ -78,7 +75,8 @@ export default function Kikitan({
     const [result, setResult] = React.useState<string[]>([]);
     const [detection, setDetection] = React.useState<string>("");
     const [translated, setTranslated] = React.useState("");
-    const [desktopResult, setDesktopResult] = React.useState("");
+    const [translationError, setTranslationError] = React.useState("");
+    const [desktopResult] = React.useState("");
 
     const [defaultMicrophone, setDefaultMicrophone] = React.useState(
         localization.waiting_for_mic_access[lang]
@@ -110,8 +108,6 @@ export default function Kikitan({
     //         connection_init_time: 0,
     //         connection_established_time: 0,
     //     });
-
-    const [statusTrigger, setStatusTrigger] = React.useState(false);
 
     const [showMessageHistory, setShowMessageHistory] = React.useState(false);
 
@@ -213,7 +209,18 @@ export default function Kikitan({
         //     setGeminiAsSR();
         // }
 
-        sr = new WebSpeech(sourceLanguage, targetLanguage);
+        const webSpeech = new WebSpeech(
+            sourceLanguage,
+            targetLanguage,
+            cfg.translation_engine,
+            cfg.deepl_settings.api_plan,
+            cfg.deepl_settings.send_source_on_error,
+        );
+        setTranslationError("");
+        webSpeech.onError((translationError: TranslationError) => {
+            setTranslationError(translationError.message ?? "Translation failed.");
+        });
+        sr = webSpeech;
         info("[SR] Using WebSpeech for recognition");
 
         sr.onResult((result: string[], isFinal: boolean) => {
@@ -329,6 +336,14 @@ export default function Kikitan({
 
             const current_detection = current[0];
             const current_translation = current[1];
+            const translationSucceeded = current[2] === "translated";
+            const vrcTranslationSuffix =
+                config.mode === 0 && translationSucceeded
+                    ? config.translation_engine === "deepl"
+                        ? " byDL"
+                        : " byGgl"
+                    : "";
+            const vrcTranslation = `${current_translation}${vrcTranslationSuffix}`;
 
             if (config.mode == 0) setTranslated(current_translation);
 
@@ -360,11 +375,13 @@ export default function Kikitan({
                 invoke("send_message", {
                     address: config.vrchat_settings.osc_address,
                     port: `${config.vrchat_settings.osc_port}`,
-                    msg: config.mode == 1 ? current_detection : config.vrchat_settings.only_translation
-                        ? current_translation
+                    msg: config.mode == 1 || !translationSucceeded
+                        ? current_detection
+                        : config.vrchat_settings.only_translation
+                        ? vrcTranslation
                         : config.vrchat_settings.translation_first
-                            ? `${current_translation} (${current_detection})`
-                            : `${current_detection} (${current_translation})`,
+                            ? `${vrcTranslation} (${current_detection})`
+                            : `${current_detection} (${vrcTranslation})`,
                 });
             }
 
@@ -801,9 +818,19 @@ export default function Kikitan({
                         >
                             <p
                                 className={`transition-all duration-300 align-middle`}
+                                style={{
+                                    fontFamily: config.translation_engine === "deepl"
+                                        ? '"Yu Gothic UI", Meiryo, sans-serif'
+                                        : '"Yu Mincho", "MS PMincho", serif',
+                                }}
                             >
                                 {translated}
                             </p>
+                            {translationError.length > 0 && (
+                                <p className="text-sm text-red-500 mt-2">
+                                    {config.translation_engine === "deepl" ? "DeepL" : "Google"}: {translationError}
+                                </p>
+                            )}
                         </div>
                         <div>
                             <Select
@@ -1054,7 +1081,7 @@ export default function Kikitan({
                 <div id="default-mic" className="justify-center flex mt-4">
                     <KeyboardVoiceIcon fontSize="small" />
                     <a
-                        className=" text-blue-700"
+                        className=" text-orange-600"
                         href=""
                         onClick={(e) => {
                             e.preventDefault();

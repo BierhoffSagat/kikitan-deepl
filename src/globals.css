@@ -12,6 +12,11 @@ body {
   font-family: 'Inter';
 }
 
+::selection {
+  background: #fb923c;
+  color: #1c1917;
+}
+
 @layer base {
   h2 {
     @apply text-2xl;

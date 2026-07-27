@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 
 import { appLogDir } from '@tauri-apps/api/path';
 
-import { IconButton, FormControlLabel, FormGroup, Checkbox, TextField, Select, MenuItem, Button, Slider } from "@mui/material";
+import { IconButton, FormControlLabel, FormGroup, Checkbox, TextField, Select, MenuItem, Button, Slider, FormControl, FormLabel, RadioGroup, Radio, Divider } from "@mui/material";
 
 import {
     Close,
@@ -19,6 +19,8 @@ import { Config, DEFAULT_CONFIG, speed_presets } from "../util/config";
 import { localization } from "../util/localization";
 import { Lang } from "../util/constants";
 import { open } from "@tauri-apps/plugin-shell";
+import { invoke } from "@tauri-apps/api/core";
+import { DeepLError } from "../translators/deepl_translate";
 
 type CustomTabPanelProps = {
     children: React.ReactNode;
@@ -38,8 +40,8 @@ function CustomTabPanel(props: CustomTabPanelProps) {
             {...other}
         >
             {value === index && (
-                <Box sx={{ p: 3 }}>
-                    <Typography>{children}</Typography>
+                <Box sx={{ p: 3, width: "100%", boxSizing: "border-box" }}>
+                    <Typography component="div">{children}</Typography>
                 </Box>
             )}
         </div>
@@ -60,9 +62,15 @@ type SettingsProps = {
     lang: Lang;
 }
 
+type DeepLStatusTone = "info" | "success" | "error";
+
 export default function Settings({ closeCallback, config, setConfig, lang }: SettingsProps) {
     const [page, setPage] = React.useState(0);
     const [geminiTutorialShow, setGeminiTutorialShow] = React.useState(false)
+    const [deeplApiKey, setDeepLApiKey] = React.useState("");
+    const [deeplConfigured, setDeepLConfigured] = React.useState(false);
+    const [deeplStatus, setDeepLStatus] = React.useState("");
+    const [deeplStatusTone, setDeepLStatusTone] = React.useState<DeepLStatusTone>("info");
 
     const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
         setPage(newValue);
@@ -78,34 +86,132 @@ export default function Settings({ closeCallback, config, setConfig, lang }: Set
         });
     };
 
+    React.useEffect(() => {
+        invoke<{ configured: boolean }>("deepl_api_key_status")
+            .then((status) => setDeepLConfigured(status.configured))
+            .catch(() => {
+                setDeepLStatusTone("error");
+                setDeepLStatus(localization.deepl_credential_check_failed[lang]);
+            });
+    }, [lang]);
+
+    const saveDeepLKey = async () => {
+        setDeepLStatus("");
+        try {
+            await invoke("save_deepl_api_key", { apiKey: deeplApiKey });
+            setDeepLApiKey("");
+            setDeepLConfigured(true);
+            setDeepLStatusTone("success");
+            setDeepLStatus(localization.deepl_key_saved_success[lang]);
+        } catch (e) {
+            setDeepLStatusTone("error");
+            setDeepLStatus((e as DeepLError).message ?? localization.deepl_key_save_failed[lang]);
+        }
+    };
+
+    const deleteDeepLKey = async () => {
+        setDeepLStatus("");
+        try {
+            await invoke("delete_deepl_api_key");
+            setDeepLApiKey("");
+            setDeepLConfigured(false);
+            setDeepLStatusTone("success");
+            setDeepLStatus(localization.deepl_key_deleted[lang]);
+        } catch (e) {
+            setDeepLStatusTone("error");
+            setDeepLStatus((e as DeepLError).message ?? localization.deepl_key_delete_failed[lang]);
+        }
+    };
+
+    const checkDeepL = async () => {
+        setDeepLStatusTone("info");
+        setDeepLStatus(localization.deepl_checking_connection[lang]);
+        try {
+            await invoke("check_deepl_connection", {
+                apiPlan: config.deepl_settings.api_plan,
+            });
+            setDeepLStatusTone("success");
+            setDeepLStatus(localization.deepl_connection_success[lang]);
+        } catch (e) {
+            setDeepLStatusTone("error");
+            setDeepLStatus((e as DeepLError).message ?? localization.deepl_connection_failed[lang]);
+        }
+    };
+
     return <>
         <Box sx={{
             width: '100%',
+            height: '100%',
+            boxSizing: 'border-box',
             '& .MuiSvgIcon-root': {
                 color: config.light_mode ? 'black' : '#94A3B8'
+            },
+            '& .MuiRadio-root.Mui-checked .MuiSvgIcon-root, & .MuiCheckbox-root.Mui-checked .MuiSvgIcon-root': {
+                color: '#f97316',
+            },
+            '& .MuiFormLabel-root': {
+                color: config.light_mode ? '#44403c' : '#CBD5E1',
+            },
+            '& .MuiFormLabel-root.Mui-focused': {
+                color: '#fb923c',
+            },
+            '& .MuiSelect-select': {
+                color: config.light_mode ? '#1c1917' : '#F8FAFC',
+            },
+            '& .MuiInputBase-input': {
+                color: config.light_mode ? '#1c1917' : '#F8FAFC',
+            },
+            '& .MuiInputLabel-root': {
+                color: config.light_mode ? '#57534E' : '#CBD5E1',
+            },
+            '& .MuiFormHelperText-root': {
+                color: config.light_mode ? '#57534E' : '#CBD5E1',
+                fontWeight: 500,
+            },
+            '& .MuiFormControlLabel-label, & .MuiTypography-root': {
+                color: 'inherit',
+            },
+            '& .MuiDivider-root': {
+                borderColor: config.light_mode ? '#D6D3D1' : '#334155',
             },
             '& .MuiOutlinedInput-notchedOutline': {
                 borderColor: config.light_mode ? 'black' : '#94A3B8',
             },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: config.light_mode ? 'black' : '#94A3B8',
+            '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#fb923c',
+            },
+            '& .MuiButton-contained.Mui-disabled': {
+                color: config.light_mode ? '#78716C' : '#CBD5E1',
+                backgroundColor: config.light_mode ? '#E7E5E4' : '#334155',
+                opacity: 1,
+            },
+            '& .MuiButton-outlined.Mui-disabled': {
+                color: config.light_mode ? '#A8A29E' : '#64748B',
+                borderColor: config.light_mode ? '#D6D3D1' : '#475569',
             },
             '.MuiTabs-scrollButtons.Mui-disabled': {
                 opacity: 0.3
             }
 
-        }} className={`relative w-max h-screen ${config.light_mode ? "" : "bg-slate-950 text-slate-200"}`}>
-            <div className="absolute z-10">
-                <Box className="flex" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        }} className={`relative h-full w-full overflow-hidden ${config.light_mode ? "bg-white text-stone-900" : "bg-slate-950 text-slate-200"}`}>
+            <div className="relative z-10 h-full w-full overflow-y-auto overflow-x-hidden">
+                <Box
+                    className="sticky top-0 z-20 flex"
+                    sx={{
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        backgroundColor: config.light_mode ? '#FFFFFF' : '#020617',
+                    }}
+                >
                     <IconButton className="ml-2 mr-2" onClick={() => { closeCallback(); }}>
                         <Close />
                     </IconButton>
                     <Tabs textColor="inherit" value={page} onChange={handleChange} variant="scrollable" scrollButtons="auto">
                         <Tab label={localization.vrchat_settings[lang]} {...a11yProps(0)} />
-                        {/* <Tab label="Gemini" {...a11yProps(1)} /> */}
-                        <Tab label={localization.message_history[lang]} {...a11yProps(1)} />
-                        <Tab label={localization.data_out[lang]} {...a11yProps(2)} />
-                        <Tab label={localization.debug_settings[lang]} {...a11yProps(3)} />
+                        <Tab label={localization.translation_settings[lang]} {...a11yProps(1)} />
+                        <Tab label={localization.message_history[lang]} {...a11yProps(2)} />
+                        <Tab label={localization.data_out[lang]} {...a11yProps(3)} />
+                        <Tab label={localization.debug_settings[lang]} {...a11yProps(4)} />
                     </Tabs>
                 </Box>
                 <CustomTabPanel className="flex" value={page} index={0}>
@@ -268,6 +374,132 @@ export default function Settings({ closeCallback, config, setConfig, lang }: Set
                     </div>
                 </CustomTabPanel> */}
                 <CustomTabPanel className="flex" value={page} index={1}>
+                    <FormGroup className="w-full max-w-4xl">
+                        <FormControl>
+                            <FormLabel>{localization.translation_engine[lang]}</FormLabel>
+                            <RadioGroup
+                                row
+                                value={config.translation_engine}
+                                onChange={(e) => setConfig({
+                                    ...config,
+                                    translation_engine: e.target.value as Config["translation_engine"],
+                                })}
+                            >
+                                <FormControlLabel value="deepl" control={<Radio />} label="DeepL API" />
+                                <FormControlLabel value="google" control={<Radio />} label="Google Translate" />
+                            </RadioGroup>
+                        </FormControl>
+                        <p className="text-sm text-slate-400 mb-4">
+                            {localization.translation_engine_apply_on_close[lang]}
+                        </p>
+                        <Divider className="mb-4" />
+                        {config.translation_engine === "deepl" ? (
+                            <>
+                                <p className="mb-2">{localization.deepl_api_settings[lang]}</p>
+                                <Select
+                                    className="w-full max-w-xs"
+                                    value={config.deepl_settings.api_plan}
+                                    onChange={(e) => setConfig({
+                                        ...config,
+                                        deepl_settings: {
+                                            ...config.deepl_settings,
+                                            api_plan: e.target.value as "free" | "pro",
+                                        },
+                                    })}
+                                >
+                                    <MenuItem value="free">DeepL API Free</MenuItem>
+                                    <MenuItem value="pro">DeepL API Pro</MenuItem>
+                                </Select>
+                                <div className="flex flex-wrap gap-2 mt-4 items-start">
+                                    <TextField
+                                        className="w-full max-w-md"
+                                        label={localization.deepl_api_key[lang]}
+                                        type="password"
+                                        value={deeplApiKey}
+                                        helperText={deeplConfigured
+                                            ? localization.deepl_key_saved[lang]
+                                            : localization.deepl_key_not_saved[lang]}
+                                        onChange={(e) => setDeepLApiKey(e.target.value)}
+                                    />
+                                    <Button
+                                        className="h-14"
+                                        variant="contained"
+                                        disabled={deeplApiKey.trim().length === 0}
+                                        onClick={saveDeepLKey}
+                                    >
+                                        {localization.save[lang]}
+                                    </Button>
+                                    <Button
+                                        className="h-14"
+                                        variant="contained"
+                                        color="error"
+                                        disabled={!deeplConfigured}
+                                        onClick={deleteDeepLKey}
+                                    >
+                                        {localization.delete[lang]}
+                                    </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    <Button
+                                        variant="contained"
+                                        disabled={!deeplConfigured}
+                                        onClick={checkDeepL}
+                                    >
+                                        {localization.check_connection[lang]}
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => open("https://www.deepl.com/your-account/keys")}
+                                    >
+                                        {localization.open_deepl_api_keys[lang]}
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="rounded border border-orange-500/60 bg-orange-500/10 p-4">
+                                <p className="font-semibold">Google Translate</p>
+                                <p className="text-sm mt-1">
+                                    {localization.google_translate_description[lang]}
+                                </p>
+                            </div>
+                        )}
+                        <FormControlLabel
+                            className="mt-3"
+                            control={<Checkbox
+                                checked={config.deepl_settings.send_source_on_error}
+                                onChange={(e) => setConfig({
+                                    ...config,
+                                    deepl_settings: {
+                                        ...config.deepl_settings,
+                                        send_source_on_error: e.target.checked,
+                                    },
+                                })}
+                            />}
+                            label={localization.send_original_on_translation_failure[lang]}
+                        />
+                        {config.translation_engine === "deepl" && deeplStatus.length > 0 && (
+                            <p
+                                role="status"
+                                className={`mt-3 rounded border px-4 py-3 text-sm font-semibold ${
+                                    deeplStatusTone === "success"
+                                        ? config.light_mode
+                                            ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                                            : "border-emerald-500 bg-emerald-950 text-emerald-200"
+                                        : deeplStatusTone === "error"
+                                            ? config.light_mode
+                                                ? "border-red-600 bg-red-50 text-red-900"
+                                                : "border-red-500 bg-red-950 text-red-200"
+                                            : config.light_mode
+                                                ? "border-orange-500 bg-orange-50 text-orange-900"
+                                                : "border-orange-500 bg-orange-950 text-orange-200"
+                                }`}
+                            >
+                                {deeplStatus}
+                            </p>
+                        )}
+                    </FormGroup>
+                </CustomTabPanel>
+                <CustomTabPanel className="flex" value={page} index={2}>
                     <FormGroup>
                         <FormControlLabel control={<Checkbox checked={config.message_history.enabled} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             setConfig({
@@ -336,7 +568,7 @@ export default function Settings({ closeCallback, config, setConfig, lang }: Set
                         </div>
                     </FormGroup>
                 </CustomTabPanel>
-                <CustomTabPanel className="flex" value={page} index={2}>
+                <CustomTabPanel className="flex" value={page} index={3}>
                     <FormGroup>
                         <FormControlLabel control={<Checkbox checked={config.data_out.enable_user_data} onChange={(e) => {
                             setConfig({
@@ -358,7 +590,7 @@ export default function Settings({ closeCallback, config, setConfig, lang }: Set
                         }} />} label={localization.enable_desktop_data[lang]} />
                     </FormGroup>
                 </CustomTabPanel>
-                <CustomTabPanel className="flex" value={page} index={3}>
+                <CustomTabPanel className="flex" value={page} index={4}>
                     <FormGroup>
                         <Button variant="contained" onClick={async () => {
                             open(await appLogDir())

@@ -1,47 +1,102 @@
-# Kikitan Translator
+# Kikitan Translator DeepL
 
-<div align="center">
-<a href="https://sergiomarquina.booth.pm/items/6073050">
-<img src="https://media.buyee.jp/guide/addtobuyee/assets/img/store-logo-booth.png" alt="drawing" width="150" align="center">
-</a>
-<a href="https://buymeacoffee.com/sergiomarquina">
-<img src="https://i.imgur.com/l7NBjqk.png" alt="drawing" width="150" height="45" align="center">
-</a>
-<br><br>
-<img width=500 src="https://i.imgur.com/C9fSR9O.png" />
-</div>
+An unofficial fork of [Kikitan Translator](https://github.com/YusufOzmen01/kikitan-translator) that adds DeepL API translation while retaining the original Google Translate option.
 
-### A VRChat translator built for helping you and the person/people you're talking with to understand each other regardless of language differences.
+This project is based on upstream tag [`1.2.5`](https://github.com/YusufOzmen01/kikitan-translator/tree/1.2.5). It is independently maintained and is not an official release from the original Kikitan author or DeepL.
 
-- **Translation:** Translation of your speech to the chatbox in more than 10 major languages (6 accents of English and 6 dialects of Spanish along with languages such as Japanese, Korean, Chinese, Italian, French, Turkish, Russian, Polish, Portugal, German, French, Arabic, Swedish and so on)
-- **Transcription (Just Speech to Text):** If you don't want to translate, there is a transcription mode that sends whatever you say directly to the chatbox. Perfect for people that prefer to not speak in VRChat but be able to communicate with the convenience of speaking.
+## Main features
 
-## How to build
+- Speech recognition and VRChat chatbox output
+- DeepL API Free and DeepL API Pro support
+- Google Translate can be selected without an API key
+- Translation engine selection from `Settings > Translation`
+- DeepL API keys stored in Windows Credential Manager
+- Orange UI and separate application identity for easy distinction from upstream Kikitan
+- `byDL` or `byGgl` appended only to successful VRChat translation messages
+- Light and dark theme support
 
-### Required dependencies
+## Download
 
-- rust (recommended minimum is 1.77.2)
-- node (recommended minimum is v22.1.0)
+Download the latest installer from [GitHub Releases](https://github.com/BierhoffSagat/kikitan-deepl/releases).
 
-```sh
-git clone https://github.com/YusufOzmen01/kikitan-translator
-cd kikitan-translator
+Important:
 
-# to update dependencies
-npm i
+- The installer is currently unsigned. Windows SmartScreen may display a warning.
+- No DeepL API key is included. Each user must obtain and configure their own key.
+- This edition can be installed alongside upstream Kikitan.
+- Do not run both editions at the same time. Both use VRChat OSC port `9000` by default and can conflict.
+- Google Translate uses Kikitan's original connection method and can be affected by external service changes.
 
-# for development
+## クイックスタート
+
+1. [Releases](https://github.com/BierhoffSagat/kikitan-deepl/releases)から最新版のセットアップファイルをダウンロードしてインストールします。
+2. Kikitan Translator DeepLを起動し、歯車アイコンから`Translation`を開きます。
+3. DeepLを使う場合は`DeepL API`を選び、契約に合わせて`DeepL API Free`または`DeepL API Pro`を選択します。
+4. 自分のDeepL APIキーを入力して`Save`を押し、`Check Connection`で接続を確認します。
+5. Google翻訳を使う場合は`Google Translate`を選択します。APIキーは不要です。
+6. 設定画面を閉じると選択した翻訳エンジンが適用されます。
+
+DeepL APIキーはWindows資格情報マネージャーへ保存され、アプリの設定ファイルやログには書き込まれません。APIキーをチャット、スクリーンショット、Issueへ掲載しないでください。
+
+## Translation engine behavior
+
+Successful translations sent to the VRChat chatbox are marked as follows:
+
+- DeepL API: `byDL`
+- Google Translate: `byGgl`
+
+The marker is added only to the VRChat message. It is not added to the on-screen translation, message history, exported data, fallback text, or API request.
+
+If DeepL does not support the selected language combination, the application reports the error without sending a translation request. Translation errors do not stop speech recognition. The optional fallback setting can send the original text to VRChat when translation fails.
+
+## Application identity
+
+Current version: `1.2.5-deepl.9`
+
+The DeepL edition uses:
+
+- Product name: `Kikitan Translator DeepL`
+- Application identifier: `com.sagat.kikitan.deepl`
+- Executable name: `kikitan-translator-deepl.exe`
+
+Automatic updates from the upstream Kikitan release channel are disabled so that an upstream update cannot silently replace this edition.
+
+## Build from source
+
+### Requirements
+
+- Rust 1.77.2 or newer
+- Node.js 22.1.0 or newer
+- .NET SDK 9 or newer for the desktop/OpenVR overlay
+
+```powershell
+git clone https://github.com/BierhoffSagat/kikitan-deepl.git
+Set-Location -LiteralPath ".\kikitan-deepl"
+
+npm install
+powershell -ExecutionPolicy Bypass -File scripts/build_overlay.ps1
+
+# Development
 npm run tauri dev
 
-# signing is required if you want to use the updater
-# if don't want to use the updater, delete the updater plugin inside of tauri.conf.json
-
-# to sign the executable, generate a private and public keypair, then assign TAURI_SIGNING_PRIVATE_KEY environment variable and update the pubkey field inside of tauri.conf.json with your public key
-
-# for compiling as a release build
+# Release build
 npm run tauri build
 ```
 
+Code signing is required to distribute a trusted signed installer. The published community build is currently unsigned.
+
+## Upstream project
+
+Kikitan Translator was created by the original project author and contributors:
+
+- [Upstream source repository](https://github.com/YusufOzmen01/kikitan-translator)
+- [Original BOOTH page](https://sergiomarquina.booth.pm/items/6073050)
+- [Support the original author](https://buymeacoffee.com/sergiomarquina)
+
+See [NOTICE.md](NOTICE.md) for attribution and [CHANGELOG.md](CHANGELOG.md) for changes in this fork.
+
 ## License
 
-[Check the LICENSE.md for details](https://github.com/YusufOzmen01/kikitan-translator/blob/main/LICENSE.md)
+This fork remains available under the upstream MIT License. See [LICENSE.md](LICENSE.md).
+
+Copyright 2024 SergioMarquina

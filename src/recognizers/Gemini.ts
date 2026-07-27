@@ -78,6 +78,9 @@ export class Gemini extends Recognizer {
             this.webSpeech = new WebSpeech(
                 language_src,
                 "",
+                "deepl",
+                "free",
+                false,
                 true,
                 jp_omit_questionmark,
             );
