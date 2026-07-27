@@ -17,7 +17,7 @@ This project is based on upstream tag [`1.2.5`](https://github.com/YusufOzmen01/
 
 ## Download
 
-Download the latest installer from [GitHub Releases](https://github.com/BierhoffSagat/kikitan-deepl/releases).
+Download the latest installer from [GitHub Releases](https://github.com/BBBB5551111/kikitan-deepl/releases).
 
 Important:
 
@@ -29,7 +29,7 @@ Important:
 
 ## クイックスタート
 
-1. [Releases](https://github.com/BierhoffSagat/kikitan-deepl/releases)から最新版のセットアップファイルをダウンロードしてインストールします。
+1. [Releases](https://github.com/BBBB5551111/kikitan-deepl/releases)から最新版のセットアップファイルをダウンロードしてインストールします。
 2. Kikitan Translator DeepLを起動し、歯車アイコンから`Translation`を開きます。
 3. DeepLを使う場合は`DeepL API`を選び、契約に合わせて`DeepL API Free`または`DeepL API Pro`を選択します。
 4. 自分のDeepL APIキーを入力して`Save`を押し、`Check Connection`で接続を確認します。
@@ -70,7 +70,7 @@ Automatic updates from the upstream Kikitan release channel are disabled so that
 - .NET SDK 9 or newer for the desktop/OpenVR overlay
 
 ```powershell
-git clone https://github.com/BierhoffSagat/kikitan-deepl.git
+git clone https://github.com/BBBB5551111/kikitan-deepl.git
 Set-Location -LiteralPath ".\kikitan-deepl"
 
 npm install
